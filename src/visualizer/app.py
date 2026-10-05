@@ -41,14 +41,103 @@ def get_core() -> CoreService:
 core = get_core()
 
 
+def render_student_card(
+    title: str,
+    key_prefix: str,
+):
+    with st.container(border=True):
+        st.subheader(title)
+
+        year_key = f"{key_prefix}_year"
+        direction_key = f"{key_prefix}_direction"
+        group_key = f"{key_prefix}_group"
+        student_key = f"{key_prefix}_student"
+
+        years = core.get_years()
+
+        if not years:
+            st.warning(
+                "Годы не найдены."
+            )
+            return None
+
+        year = st.selectbox(
+            "Год поступления",
+            years,
+            key=year_key,
+        )
+
+        directions = core.get_directions(
+            year,
+        )
+
+        if not directions:
+            st.warning(
+                "Для выбранного года "
+                "направления не найдены."
+            )
+            return None
+
+        direction = st.selectbox(
+            "Направление",
+            directions,
+            format_func=lambda item: item.name,
+            key=direction_key,
+        )
+
+        groups = core.get_groups(
+            year,
+            direction.id,
+        )
+
+        if not groups:
+            st.warning(
+                "Для выбранного направления "
+                "группы не найдены."
+            )
+            return None
+
+        group = st.selectbox(
+            "Группа",
+            groups,
+            format_func=lambda item: item.name,
+            key=group_key,
+        )
+
+        students = core.get_students(
+            group.id,
+        )
+
+        if not students:
+            st.warning(
+                "В выбранной группе "
+                "студенты не найдены."
+            )
+            return None
+
+        student = st.selectbox(
+            "Студент",
+            students,
+            format_func=lambda item: (
+                f"{item.name} ({item.id})"
+            ),
+            key=student_key,
+        )
+
+        return {
+            "year": year,
+            "direction": direction,
+            "group": group,
+            "student": student,
+        }
+
+
 st.title("UNEcon Rating")
 
 st.header("Сравнение студентов")
 
 
-years = core.get_years()
-
-if not years:
+if not core.get_years():
     st.warning(
         "Каталог ещё не загружен в базу данных."
     )
@@ -66,97 +155,132 @@ if not years:
     st.stop()
 
 
-year = st.selectbox(
-    "Год поступления",
-    years,
+left_col, center_col, right_col = st.columns(
+    [10, 1, 10]
 )
 
 
-directions = core.get_directions(
-    year,
-)
-
-if not directions:
-    st.warning(
-        "Для выбранного года "
-        "направления не найдены."
+with left_col:
+    first_student = render_student_card(
+        "Студент 1",
+        "student_1",
     )
 
-    st.stop()
 
-
-direction = st.selectbox(
-    "Направление",
-    directions,
-    format_func=lambda item: item.name,
-)
-
-
-groups = core.get_groups(
-    year,
-    direction.id,
-)
-
-if not groups:
-    st.warning(
-        "Для выбранного направления "
-        "группы не найдены."
+with center_col:
+    st.markdown(
+        "<div style='height: 230px;'></div>",
+        unsafe_allow_html=True,
     )
 
-    st.stop()
-
-
-group = st.selectbox(
-    "Группа",
-    groups,
-    format_func=lambda item: item.name,
-)
-
-
-students = core.get_students(
-    group.id,
-)
-
-if len(students) < 2:
-    st.warning(
-        "В группе недостаточно студентов "
-        "для сравнения."
+    st.markdown(
+        "<div style='text-align: center; "
+        "font-size: 28px; font-weight: 700;'>"
+        "VS"
+        "</div>",
+        unsafe_allow_html=True,
     )
 
-    st.stop()
+
+with right_col:
+    second_student = render_student_card(
+        "Студент 2",
+        "student_2",
+    )
 
 
-student_1 = st.selectbox(
-    "Первый студент",
-    students,
-    format_func=lambda item: (
-        f"{item.name} ({item.id})"
-    ),
-    key="student_1",
+student_1 = (
+    first_student["student"]
+    if first_student is not None
+    else None
+)
+
+student_2 = (
+    second_student["student"]
+    if second_student is not None
+    else None
 )
 
 
-student_2_options = [
-    student
-    for student in students
-    if student.id != student_1.id
-]
-
-
-student_2 = st.selectbox(
-    "Второй студент",
-    student_2_options,
-    format_func=lambda item: (
-        f"{item.name} ({item.id})"
-    ),
-    key="student_2",
-)
-
-
-if st.button(
-    "Сравнить студентов",
-    type="primary",
+if (
+    student_1 is not None
+    and student_2 is not None
+    and student_1.id == student_2.id
 ):
+    st.warning(
+        "Нельзя сравнить студента с самим собой. "
+        "Выберите разных студентов."
+    )
+
+    student_1 = None
+    student_2 = None
+
+
+current_selection = (
+    student_1.id if student_1 is not None else None,
+    student_2.id if student_2 is not None else None,
+)
+
+
+if (
+    "comparison_selection"
+    in st.session_state
+    and st.session_state[
+        "comparison_selection"
+    ] != current_selection
+):
+    st.session_state.pop(
+        "comparison",
+        None,
+    )
+
+    st.session_state.pop(
+        "comparison_student_1",
+        None,
+    )
+
+    st.session_state.pop(
+        "comparison_student_2",
+        None,
+    )
+
+    st.session_state.pop(
+        "comparison_info_1",
+        None,
+    )
+
+    st.session_state.pop(
+        "comparison_info_2",
+        None,
+    )
+
+    st.session_state.pop(
+        "comparison_selection",
+        None,
+    )
+
+
+st.write("")
+
+
+compare_col1, compare_col2, compare_col3 = st.columns(
+    [1, 2, 1]
+)
+
+
+with compare_col2:
+    compare_clicked = st.button(
+        "Сравнить студентов",
+        type="primary",
+        use_container_width=True,
+        disabled=(
+            student_1 is None
+            or student_2 is None
+        ),
+    )
+
+
+if compare_clicked:
     with st.spinner(
         "Получение данных и анализ..."
     ):
@@ -176,6 +300,34 @@ if st.button(
     st.session_state[
         "comparison_student_2"
     ] = student_2
+
+    st.session_state[
+        "comparison_info_1"
+    ] = {
+        "year": first_student["year"],
+        "direction": first_student[
+            "direction"
+        ].name,
+        "group": first_student[
+            "group"
+        ].name,
+    }
+
+    st.session_state[
+        "comparison_info_2"
+    ] = {
+        "year": second_student["year"],
+        "direction": second_student[
+            "direction"
+        ].name,
+        "group": second_student[
+            "group"
+        ].name,
+    }
+
+    st.session_state[
+        "comparison_selection"
+    ] = current_selection
 
 
 if "comparison" not in st.session_state:
@@ -198,6 +350,83 @@ comparison_student_1 = st.session_state[
 comparison_student_2 = st.session_state[
     "comparison_student_2"
 ]
+
+comparison_info_1 = st.session_state[
+    "comparison_info_1"
+]
+
+comparison_info_2 = st.session_state[
+    "comparison_info_2"
+]
+
+
+st.divider()
+
+st.header("Выбранные студенты")
+
+
+left_col, center_col, right_col = st.columns(
+    [10, 1, 10]
+)
+
+
+with left_col:
+    with st.container(border=True):
+        st.subheader(
+            comparison_student_1.name
+        )
+
+        st.write(
+            f"**Год:** "
+            f"{comparison_info_1['year']}"
+        )
+
+        st.write(
+            f"**Направление:** "
+            f"{comparison_info_1['direction']}"
+        )
+
+        st.write(
+            f"**Группа:** "
+            f"{comparison_info_1['group']}"
+        )
+
+
+with center_col:
+    st.markdown(
+        "<div style='height: 40px;'></div>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        "<div style='text-align: center; "
+        "font-size: 24px; font-weight: 700;'>"
+        "VS"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+with right_col:
+    with st.container(border=True):
+        st.subheader(
+            comparison_student_2.name
+        )
+
+        st.write(
+            f"**Год:** "
+            f"{comparison_info_2['year']}"
+        )
+
+        st.write(
+            f"**Направление:** "
+            f"{comparison_info_2['direction']}"
+        )
+
+        st.write(
+            f"**Группа:** "
+            f"{comparison_info_2['group']}"
+        )
 
 
 st.divider()

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 
+from analyzer import AnalyzerService
 from core import CoreService
 from database import Neo4jDatabase
 from parser.service import ParserService
@@ -22,11 +23,13 @@ class FailingParser:
 
 def main():
     parser = ParserService()
+    analyzer = AnalyzerService()
 
     with Neo4jDatabase() as database:
         core = CoreService(
             parser=parser,
             database=database,
+            analyzer=analyzer,
         )
 
         print("1. Поиск тестовой группы...")
@@ -119,6 +122,7 @@ def main():
         core_from_database = CoreService(
             parser=FailingParser(),
             database=database,
+            analyzer=analyzer,
         )
 
         students_without_parser = (

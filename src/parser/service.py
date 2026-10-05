@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import time
-
 from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
@@ -21,13 +20,10 @@ from models import (
 BASE_URL = "https://rating.unecon.ru"
 
 INDEX_URL = f"{BASE_URL}/index.php"
-
 STUDENT_URL = f"{BASE_URL}/stud_cd.php"
 
 REQUEST_DELAY = 1
-
 REQUEST_TIMEOUT = 30
-
 MAX_RETRIES = 3
 
 HEADERS = {
@@ -52,7 +48,6 @@ class ParserService:
                     impersonate="chrome",
                     timeout=REQUEST_TIMEOUT,
                 )
-
                 response.raise_for_status()
 
                 print(f"GET {response.url}")
@@ -366,10 +361,6 @@ class ParserService:
         groups = {}
 
         for table in soup.find_all("table"):
-            table_group = self._extract_group_name(
-                table,
-            )
-
             for row in table.find_all("tr"):
                 links = row.select(
                     'a[href*="stud_cd.php?stud="]'
@@ -378,9 +369,8 @@ class ParserService:
                 if not links:
                     continue
 
-                group_name = (
-                    table_group
-                    or self._extract_group_name(row)
+                group_name = self._extract_group_name(
+                    row,
                 )
 
                 if not group_name:
@@ -401,10 +391,8 @@ class ParserService:
                 group = groups[group_id]
 
                 for link in links:
-                    student = (
-                        self._extract_student_ref(
-                            link,
-                        )
+                    student = self._extract_student_ref(
+                        link,
                     )
 
                     if student is None:
@@ -415,7 +403,7 @@ class ParserService:
                         for existing in group.students
                     ):
                         group.students.append(
-                            student
+                            student,
                         )
 
         return list(groups.values())
@@ -457,7 +445,7 @@ class ParserService:
                         for item in existing.students
                     ):
                         existing.students.append(
-                            student
+                            student,
                         )
 
         return list(groups.values())
@@ -625,8 +613,8 @@ class ParserService:
                 if len(columns) < 7:
                     continue
 
-                subject, control_type = (
-                    self._parse_subject(row)
+                subject, control_type = self._parse_subject(
+                    row,
                 )
 
                 if subject is None:
@@ -643,7 +631,6 @@ class ParserService:
                             strip=True,
                         )
                     )
-
                     exam_index = 5
                     total_index = 6
                     grade_index = 7
