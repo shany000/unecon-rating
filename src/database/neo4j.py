@@ -49,6 +49,13 @@ class Neo4jDatabase:
         self.close()
 
     def create_constraints(self):
+        self._driver.execute_query(
+            """
+            DROP CONSTRAINT direction_id_unique IF EXISTS
+            """,
+            database_=self._database,
+        )
+
         queries = [
             """
             CREATE CONSTRAINT year_year_unique IF NOT EXISTS
@@ -56,9 +63,9 @@ class Neo4jDatabase:
             REQUIRE y.year IS UNIQUE
             """,
             """
-            CREATE CONSTRAINT direction_id_unique IF NOT EXISTS
+            CREATE CONSTRAINT direction_year_id_unique IF NOT EXISTS
             FOR (d:Direction)
-            REQUIRE d.id IS UNIQUE
+            REQUIRE (d.year, d.id) IS UNIQUE
             """,
             """
             CREATE CONSTRAINT group_id_unique IF NOT EXISTS
@@ -131,7 +138,10 @@ class Neo4jDatabase:
             """
             MATCH (y:Year {year: $year})
                   -[:HAS_DIRECTION]->
-                  (d:Direction {id: $direction_id})
+                  (d:Direction {
+                      year: $year,
+                      id: $direction_id
+                  })
                   -[:HAS_GROUP]->
                   (g:Group)
 
@@ -209,7 +219,12 @@ class Neo4jDatabase:
 
             UNWIND year_data.directions AS direction_data
 
-            MERGE (d:Direction {id: direction_data.id})
+            MERGE (
+                d:Direction {
+                    year: year_data.year,
+                    id: direction_data.id
+                }
+            )
 
             SET d.name = direction_data.name
 
@@ -248,7 +263,10 @@ class Neo4jDatabase:
             """
             MATCH (y:Year {year: $year})
                   -[:HAS_DIRECTION]->
-                  (d:Direction {id: $direction_id})
+                  (d:Direction {
+                      year: $year,
+                      id: $direction_id
+                  })
 
             UNWIND $groups AS group_data
 

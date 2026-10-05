@@ -80,7 +80,9 @@ class ParserService:
 
         return {
             key: values[0]
-            for key, values in parse_qs(parsed.query).items()
+            for key, values in parse_qs(
+                parsed.query
+            ).items()
             if values
         }
 
@@ -134,7 +136,9 @@ class ParserService:
 
     @classmethod
     def _find_filter_block(cls, soup, title):
-        for element in soup.select(".filter > ul > li"):
+        for element in soup.select(
+            ".filter > ul > li"
+        ):
             label = element.find("b")
 
             if label is None:
@@ -397,8 +401,10 @@ class ParserService:
                 group = groups[group_id]
 
                 for link in links:
-                    student = self._extract_student_ref(
-                        link,
+                    student = (
+                        self._extract_student_ref(
+                            link,
+                        )
                     )
 
                     if student is None:
@@ -408,7 +414,9 @@ class ParserService:
                         existing.id == student.id
                         for existing in group.students
                     ):
-                        group.students.append(student)
+                        group.students.append(
+                            student
+                        )
 
         return list(groups.values())
 
@@ -448,7 +456,9 @@ class ParserService:
                         item.id == student.id
                         for item in existing.students
                     ):
-                        existing.students.append(student)
+                        existing.students.append(
+                            student
+                        )
 
         return list(groups.values())
 
@@ -551,7 +561,18 @@ class ParserService:
             ".",
         )
 
-        number = float(value)
+        match = re.fullmatch(
+            r"\s*(-?\d+(?:\.\d+)?)"
+            r"(?:\s*\(\s*-?\d+(?:\.\d+)?\s*\))?\s*",
+            value,
+        )
+
+        if match is None:
+            return None
+
+        number = float(
+            match.group(1)
+        )
 
         if number.is_integer():
             return int(number)

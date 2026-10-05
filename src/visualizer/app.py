@@ -10,6 +10,7 @@ from parser.service import ParserService
 from visualizer.charts import (
     average_grade_chart,
     average_points_chart,
+    semester_subject_points_chart,
 )
 
 
@@ -301,39 +302,60 @@ for semester in comparison.semesters:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write(
+            st.subheader(
                 comparison_student_1.name
             )
 
-            st.write(
-                "Средняя оценка:",
-                semester.student_1_average_grade,
+            st.metric(
+                "Средняя оценка",
+                (
+                    f"{semester.student_1_average_grade:.2f}"
+                    if semester.student_1_average_grade
+                    is not None
+                    else "Нет данных"
+                ),
             )
 
-            st.write(
-                "Средние баллы:",
-                semester.student_1_average_points,
+            st.metric(
+                "Средние баллы",
+                (
+                    f"{semester.student_1_average_points:.2f}"
+                    if semester.student_1_average_points
+                    is not None
+                    else "Нет данных"
+                ),
             )
 
         with col2:
-            st.write(
+            st.subheader(
                 comparison_student_2.name
             )
 
-            st.write(
-                "Средняя оценка:",
-                semester.student_2_average_grade,
+            st.metric(
+                "Средняя оценка",
+                (
+                    f"{semester.student_2_average_grade:.2f}"
+                    if semester.student_2_average_grade
+                    is not None
+                    else "Нет данных"
+                ),
             )
 
-            st.write(
-                "Средние баллы:",
-                semester.student_2_average_points,
+            st.metric(
+                "Средние баллы",
+                (
+                    f"{semester.student_2_average_points:.2f}"
+                    if semester.student_2_average_points
+                    is not None
+                    else "Нет данных"
+                ),
             )
 
-        st.write(
-            "Общие предметы:"
-        )
-
-        st.write(
-            semester.common_subjects
+        st.plotly_chart(
+            semester_subject_points_chart(
+                semester,
+                comparison_student_1.name,
+                comparison_student_2.name,
+            ),
+            width="stretch",
         )
