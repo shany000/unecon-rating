@@ -25,16 +25,74 @@ class CoreService:
         self.database = database
         self.analyzer = analyzer
 
-    def initialize_catalog(
-        self,
-    ) -> list[Year]:
-        self.database.create_constraints()
-
+    def _download_and_save_catalog(self) -> list[Year]:
         catalog = self.parser.get_catalog()
+
+        if not catalog:
+            raise RuntimeError(
+                "Parser не получил каталог с сайта."
+            )
+
+        empty_years = [
+            item.year
+            for item in catalog
+            if not item.directions
+        ]
+
+        if empty_years:
+            raise RuntimeError(
+                "Не найдены направления для годов: "
+                f"{empty_years}"
+            )
 
         self.database.save_catalog(catalog)
 
         return catalog
+
+    def initialize_catalog(self) -> list[Year]:
+        self.database.create_constraints()
+
+        return self._download_and_save_catalog()
+
+    def ensure_catalog(self) -> list[Year]:
+        self.database.create_constraints()
+
+        years = self.database.get_years()
+
+        if years:
+            catalog = []
+            catalog_is_complete = True
+
+            for year in years:
+                directions = self.database.get_directions(
+                    year
+                )
+
+                if not directions:
+                    catalog_is_complete = False
+                    break
+
+                catalog.append(
+                    Year(
+                        year=year,
+                        directions=directions,
+                    )
+                )
+
+            if catalog_is_complete:
+                print(
+                    "Каталог уже находится в Neo4j. "
+                    "Повторная загрузка не требуется."
+                )
+
+                return catalog
+
+        print(
+            "Каталог отсутствует или заполнен не полностью. "
+            "Загружаем данные с сайта."
+        )
+
+        return self._download_and_save_catalog()
 
     def get_years(self) -> list[int]:
         return self.database.get_years()

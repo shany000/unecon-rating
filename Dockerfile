@@ -10,4 +10,4 @@ COPY src ./src
 
 ENV PYTHONPATH=/app/src
 
-CMD ["python", "-m", "parser.service"]
+CMD ["python", "-m", "core"]
